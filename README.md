@@ -1,2 +1,1 @@
-# forexr
-Forexr
+"# Foreign-exchange-rate" 

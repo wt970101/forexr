@@ -1,0 +1,7 @@
+TIME_ZONE           = 'Asia/Taipei'
+SECRET_KEY          = '254687d6d5499b3e23943016a9a841dd6f410170f897427522a29a61f403140f'
+RECIPIENT_EMAIL     = 'wt970101@gmail.com'
+SENDER_EMAIL        = 'timapp970101@gmail.com'
+SENDER_PASSWORD     = 'urpaplehdmvlaxqh'
+MAIN_ADMIN_PASSWORD = 'ADMIN_PASSWORD'
+    
