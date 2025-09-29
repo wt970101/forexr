@@ -1,1 +1,9 @@
-"# Foreign-exchange-rate" 
+# Foreign-exchange-rate
+## 資料來源
+- 台灣銀行
+- 台北富邦
+- 國泰世華
+- 玉山銀行
+- 元大銀行
+- 永豐銀行
+- 台新銀行
