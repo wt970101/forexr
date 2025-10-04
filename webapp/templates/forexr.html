@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{%- set page_title = '外匯匯率' -%}
+
+{% block content %}
+<section>
+    <div class="row btn-block">
+        <div class="col-lg-2 mb-3">
+            <select class="form-control form-control-lg" id="selBanks">
+                <option value="bot">臺灣銀行</option>
+                <option value="fubon">台北富邦</option>
+                <option value="cathaybk">國泰世華</option>
+                <option value="esunbank">玉山銀行</option>
+                <option value="yuantabank">元大銀行</option>
+                <option value="sinopac">永豐銀行</option>
+                <option value="taishinbank">台新銀行</option>
+                <option value="all">全部</option>
+            </select>
+        </div>
+        <div class="col-lg-2 mb-3">
+            <button class="btn btn-lg btn-primary" id="btnGetList">更新
+                <span class="spinner-border spinner-border-sm d-none"></span>
+            </button>
+        </div>
+        <div class="col-lg-2 mb-3">
+            <button class="btn btn-lg btn-primary" id="btnGetAll">非同步全部更新
+                <span class="spinner-border spinner-border-sm d-none"></span>
+            </button>
+        </div>
+    </div>
+    <div class="timezone">
+        <br>
+        <p class="lead">Asia/Taipei <span id="dtnow" class="text-danger"></span></p>
+    </div>
+    <hr>
+    <div id="listData"></div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$('#btnGetList').on('click', function() {
+    fetchRates('btnGetList', $('#selBanks').val());
+});
+
+$('#btnGetAll').on('click', function() {
+    $('#listData').html('');
+    $("#selBanks option").each(function() {
+        if ($(this).val() != 'all') {
+            fetchRates('btnGetAll', $(this).val());
+        }
+    });
+});
+
+function fetchRates(btnID, bankID) {
+    $.ajax({
+        type: 'GET',
+        url: 'forexr_list/' + bankID,
+        beforeSend: function(){ $('#'+btnID+' > span').removeClass('d-none'); },
+    })
+    .done(function(data) {
+        console.log('fetchRates:', data); // 修正輸出
+
+        var items = [];
+        $.each(data.jsonData, function(_, tbank) {
+            items.push('<h3 class="text-primary">' + tbank.name + '</h3>');
+            items.push('<table class="table table-striped table-rates">');
+            items.push('<thead class="table-dark"><tr><th>幣別</th><th>即期買進</th><th>即期賣出</th><th>現金買進</th><th>現金賣出</th></tr></thead>');
+            items.push('<tbody>');
+            $.each(tbank.rates, function(_, row) {
+                items.push('<tr><td>' + row[0] + '</td><td>' + row[1] + '</td><td>' + row[2] + '</td><td>' + row[3] + '</td><td>' + row[4] + '</td></tr>');
+            });
+            items.push('</tbody></table>');
+        });
+
+        if (btnID == 'btnGetList') $('#listData').html(items.join(''));
+        else $('#listData').append(items.join(''));
+
+        $('#dtnow').html(data.dtnow);
+    })
+    .fail(function(jqXHR) { alert('Error: ' + jqXHR.status); })
+    .always(function(){ $('#'+btnID+' > span').addClass('d-none'); });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,83 @@
+body, button, html, input, select, textarea {
+    font-family: "Microsoft JhengHei";
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 400;
+}
+
+pre code {
+    font-size: 18px !important;
+    padding-left: -80px;
+}
+
+footer {
+    margin: 30px 0 40px 0;
+}
+
+/*選單專題標題配色*/
+.navbar-brand {
+    color: #bdbdbd !important;
+    font-size: 20px;
+}
+
+.navbar-nav .nav-item .nav-link {
+    font-size: 18px;
+    margin: 6px 0;
+    padding: 6px 12px;
+    color: #c0c0c0;
+}
+
+.navbar-nav .nav-item .nav-link:hover {
+    color: #fff;
+}
+
+.navbar-nav .nav-item .nav-link.active {
+    border: solid 1px #fff;
+    border-radius: 3px;
+}
+
+.jumbotron-main {
+    margin: 60px 0 20px;
+    padding: 40px 10px 20px;
+    border-radius: 3px;
+    background-color: #000000;
+    color: #fff;
+}
+
+.jumbotron-main h2 {
+    color: #fff;
+    font-size: 48px;
+}
+
+.jumbotron-main p.lead {
+    color: #e3fbf5;
+}
+
+div .card {
+    margin-bottom: 30px;
+}
+
+.btn-block .btn {
+    width: 100%;
+}
+
+.icon-block  {
+    color: #fff;
+    padding: 40px 30px;
+}
+
+.icon-block i {
+    opacity: 0.9;
+}
+
+.icon-bg {
+    color: #fff;
+    background-color: #2184ad;
+}
+
+
+.texti-code,
+.texti-code * {
+    font-family: Consolas, "Microsoft JhengHei";
+}

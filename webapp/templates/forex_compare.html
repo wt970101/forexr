@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% set page_title = '外匯比較' %}
+
+{% block content %}
+<section>
+    <!-- 幣別選擇 + 搜尋按鈕 -->
+    <div class="row mb-3">
+        <div class="col-lg-3">
+            <select class="form-control form-control-lg" id="selCurrency">
+                {% for code, name in currencies %}
+                <option value="{{ code }}">{{ name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-lg-2">
+            <button class="btn btn-lg btn-primary" id="btnSearch">
+                搜尋
+                <span class="spinner-border spinner-border-sm d-none"></span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 顯示查詢結果 -->
+    <div id="rateResult"></div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$('#btnSearch').on('click', function() {
+    var currency = $('#selCurrency').val();
+    if (!currency) return;
+
+    $('#rateResult').html(''); // 清空上一筆結果
+    $('#btnSearch > span').removeClass('d-none');
+
+    $.ajax({
+        type: 'GET',
+        url: '/get_currency_rates', // 後端新的 route
+        data: { currency: currency }
+    })
+    .done(function(data) {
+        var items = [];
+        items.push('<h4 class="text-primary">' + currency + '</h4>');
+        items.push('<table class="table table-striped table-rates">');
+        items.push('<thead class="table-dark"><tr><th>銀行</th><th>即期買進</th><th>即期賣出</th><th>現金買進</th><th>現金賣出</th></tr></thead>');
+        items.push('<tbody>');
+
+        $.each(data.rates, function(_, row) {
+            items.push('<tr><td>' + row['銀行'] + '</td><td>' + row['即期買進'] + '</td><td>' + row['即期賣出'] + '</td><td>' + row['現金買進'] + '</td><td>' + row['現金賣出'] + '</td></tr>');
+        });
+
+        items.push('</tbody></table>');
+        $('#rateResult').html(items.join(''));
+    })
+    .fail(function(jqXHR) {
+        alert('查詢失敗: ' + jqXHR.status);
+    })
+    .always(function() {
+        $('#btnSearch > span').addClass('d-none');
+    });
+});
+</script>
+{% endblock %}
