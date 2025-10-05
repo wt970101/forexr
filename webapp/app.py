@@ -3,28 +3,9 @@ from collections import defaultdict
 from datetime import datetime
 import csv
 import os
+import re
 
 app = Flask(__name__)
-
-# 副函式
-def get_forex_data(csv_file="rates.csv"):
-    data_by_currency = defaultdict(list)
-    try:
-        with open(csv_file, mode="r", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                currency = row["幣別"]
-                data_by_currency[currency].append([
-                    row["銀行"],
-                    row["現金買入"],
-                    row["現金賣出"],
-                    row["即期買入"],
-                    row["即期賣出"]
-                ])
-    except FileNotFoundError:
-        pass
-    return data_by_currency
-
 
 # forexr
 @app.route('/')
@@ -49,85 +30,109 @@ def forexr_list(bank_id):
 
     try:
         columns, records = forexr.fetch(atable)
+        today = datetime.now().strftime("%Y-%m-%d")
+        csv_file = "rates.csv"
+        fieldnames = ["日期", "銀行", "幣別代碼", "現金買入", "現金賣出", "即期買入", "即期賣出"]
 
-        # 回傳前端期望格式
+        # 先讀 CSV
+        existing_data = []
+        if os.path.exists(csv_file):
+            with open(csv_file, mode="r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                existing_data = list(reader)
+
+        # 建立查找索引
+        index_map = {(row["日期"], row["銀行"], row["幣別代碼"]): row for row in existing_data}
+
+        # 更新或新增
+        for r in records:
+            bank_name = forexr.bank_category.get(bank_id, bank_id)
+            code = r[0]  # 幣別代碼
+            cash_buy, cash_sell, spot_buy, spot_sell = r[1:5]  # 對應欄位
+            key = (today, bank_name, code)
+            index_map[key] = {
+                "日期": today,
+                "銀行": bank_name,
+                "幣別代碼": code,
+                "現金買入": cash_buy,
+                "現金賣出": cash_sell,
+                "即期買入": spot_buy,
+                "即期賣出": spot_sell
+            }
+
+        # 寫回 CSV
+        with open(csv_file, mode="w", encoding="utf-8", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            for row in index_map.values():
+                writer.writerow(row)
+        # =======================================
+
+        # 回傳前端
         jsonData = [{
             "name": forexr.bank_category.get(bank_id, bank_id),
             "rates": records
         }]
 
-         # csv
-        csv_file = "rates.csv"
-        file_exists = os.path.exists(csv_file)
-
-        with open(csv_file, mode="a", encoding="utf-8", newline="") as file:
-            writer = csv.writer(file)
-            # 如果 CSV 不存在，先寫表頭
-            if not file_exists:
-                writer.writerow(["銀行", "幣別", "現金買入", "現金賣出", "即期買入", "即期賣出"])
-            
-            # 寫入資料，每一列加上銀行名稱
-            for row in records:
-                writer.writerow([forexr.bank_category.get(bank_id, bank_id)] + row)
-
         return {
             'jsonData': jsonData,
             'dtnow': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
-    
+
     except Exception as e:
         print(e)
         return {}
     
-
-
 @app.route("/compare")
 def compare():
-    from collections import defaultdict
-    import csv
+    from webapp.modules.forexr_compare import get_forex_data
+    forex_data, display_name_map = get_forex_data()
+    
+    currencies = sorted([
+        (code, display_name_map.get(code, code))
+        for code in forex_data.keys()
+    ])
 
-    # 讀取 CSV，生成字典: {幣別中文: [...資料...]}
+    selected_currency = request.args.get("currency")
+    rows = forex_data.get(selected_currency, []) if selected_currency else []
+
+    return render_template("forexr_compare.html",
+                           currencies=currencies,
+                           selected_currency=selected_currency,
+                           rows=rows)
+
+def get_forex_data(csv_file="rates.csv"):
     data_by_currency = defaultdict(list)
+
     try:
-        with open("rates.csv", mode="r", encoding="utf-8") as f:
+        with open(csv_file, mode="r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
-                # 只留中文幣別
-                currency_name = row["幣別"]
-                if any(u'\u4e00' <= c <= u'\u9fff' for c in currency_name):
-                    data_by_currency[currency_name].append({
-                        "銀行": row["銀行"],
-                        "即期買進": row["即期買入"],
-                        "即期賣出": row["即期賣出"],
-                        "現金買進": row["現金買入"],
-                        "現金賣出": row["現金賣出"]
-                    })
+                bank = row["銀行"]
+                code = row["幣別代碼"]
+                cash_buy = row["現金買入"]
+                cash_sell = row["現金賣出"]
+                spot_buy = row["即期買入"]
+                spot_sell = row["即期賣出"]
+
+                data_by_currency[code].append({
+                    "銀行": bank,
+                    "現金買進": cash_buy,
+                    "現金賣出": cash_sell,
+                    "即期買進": spot_buy,
+                    "即期賣出": spot_sell
+                })
     except FileNotFoundError:
         pass
 
-    # 下拉選單用 list of tuple (中文幣別, 中文幣別)
-    currencies = sorted([(currency, currency) for currency in data_by_currency.keys()])
+    return data_by_currency
 
-    return render_template("forex_compare.html", currencies=currencies)
-
-@app.route('/get_currency_rates')
+@app.route("/get_currency_rates")
 def get_currency_rates():
-    currency = request.args.get('currency')
-    data_by_currency = defaultdict(list)
+    currency = request.args.get("currency")
+    if not currency:
+        return jsonify({"rates": []})
 
-    try:
-        with open("rates.csv", mode="r", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                if row["幣別"] == currency:
-                    data_by_currency[currency].append({
-                        "銀行": row["銀行"],
-                        "即期買進": row["即期買入"],
-                        "即期賣出": row["即期賣出"],
-                        "現金買進": row["現金買入"],
-                        "現金賣出": row["現金賣出"]
-                    })
-    except FileNotFoundError:
-        pass
-
-    return jsonify({ "rates": data_by_currency.get(currency, []) })
+    forex_data = get_forex_data()
+    rows = forex_data.get(currency, [])
+    return jsonify({"rates": rows})

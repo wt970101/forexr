@@ -9,31 +9,31 @@ def forexr_list(bankid, chrome):
     return atable
 
 # 統一幣別格式
-def normalize_currency_name(raw_name):
-    """
-    將幣別名稱統一為 '中文名+代碼' 格式
-    """
-    if not raw_name:
-        return ""
+# def normalize_currency_name(raw_name):
+#     """
+#     將幣別名稱統一為 '中文名+代碼' 格式
+#     """
+#     if not raw_name:
+#         return ""
 
-    # 去掉全形/半形空白
-    name = re.sub(r'\s+', '', raw_name)
+#     # 去掉全形/半形空白
+#     name = re.sub(r'\s+', '', raw_name)
 
-    # 第一步：抓英文代碼 (3 碼大寫字母)
-    match = re.search(r'([A-Z]{3})', name)
-    code = match.group(1) if match else ""
+#     # 第一步：抓英文代碼 (3 碼大寫字母)
+#     match = re.search(r'([A-Z]{3})', name)
+#     code = match.group(1) if match else ""
 
-    # 第二步：去掉 (XXX) 這種括號（含代碼）
-    chinese_name = re.sub(r'\([A-Z]{3}\)', '', name)
+#     # 第二步：去掉 (XXX) 這種括號（含代碼）
+#     chinese_name = re.sub(r'\([A-Z]{3}\)', '', name)
 
-    # 第三步：去掉殘留的英文代碼
-    chinese_name = re.sub(r'[A-Z]{3}', '', chinese_name)
+#     # 第三步：去掉殘留的英文代碼
+#     chinese_name = re.sub(r'[A-Z]{3}', '', chinese_name)
 
-    # 第四步：組合
-    if code:
-        return f"{chinese_name}{code}"
-    else:
-        return chinese_name
+#     # 第四步：組合
+#     if code:
+#         return f"{chinese_name}{code}"
+#     else:
+#         return chinese_name
 
 
 def fetch(atable):
@@ -49,6 +49,7 @@ def fetch(atable):
 
     return columns, atable
 
+# 台灣
 def bot(browser):
     atable = []
     url = "https://rate.bot.com.tw/xrt?Lang=zh-TW"
@@ -63,18 +64,19 @@ def bot(browser):
 
         currency = td_list[0].parent.find(
             'div', {'class': 'visible-phone print_hide'}).get_text().strip()  # 各個外幣名稱
-        currency = normalize_currency_name(currency)
-        # code = currency[-4:-1] # 貨幣代碼
+        # currency = normalize_currency_name(currency)
+        code = currency[-4:-1] # 貨幣代碼
 
         spot_B = td_list[3].get_text().strip() # 及時買入匯率
         spot_S = td_list[4].get_text().strip() # 及時賣出匯率
         note_B = td_list[1].get_text().strip() # 現金買入匯率
         note_S = td_list[2].get_text().strip() # 現金賣出匯率
 
-        atable.append([currency , spot_B, spot_S, note_B, note_S])
+        atable.append([code , spot_B, spot_S, note_B, note_S])
 
     return atable
 
+# 國泰世華
 def cathaybk(browser):
     atable = []
     url = "https://www.cathaybk.com.tw/cathaybk/personal/product/deposit/currency-billboard"
@@ -87,8 +89,8 @@ def cathaybk(browser):
 
     for i in range(len(exr_list)-1):
         currency = exr_list[i].get_text().strip()
-        currency = normalize_currency_name(currency)
-        # code = currency[-3:]
+        # currency = normalize_currency_name(currency)
+        code = currency[-3:]
 
         value_list = body_list[i].find_all('td') # 匯率的比值以 td 做分類
         spot_B = value_list[1].get_text().strip() # 及時買入匯率
@@ -98,7 +100,7 @@ def cathaybk(browser):
         note_B = value_list[7].get_text().strip() # 現金買入匯率
         note_S = value_list[8].get_text().strip() # 現金賣出匯率
 
-        atable.append([currency, spot_B, spot_S, digi_B, digi_S, note_B, note_S])
+        atable.append([code, spot_B, spot_S, digi_B, digi_S, note_B, note_S])
 
     return atable
 
@@ -115,8 +117,8 @@ def fubon(browser):
     for tr in tr_list:
         td_list = tr.find_all('td')
         currency = td_list[1].get_text().strip()
-        currency = normalize_currency_name(currency)
-        # code = currency[-4:-1]
+        # currency = normalize_currency_name(currency)
+        code = currency[-4:-1]
 
         spot = td_list[3].get_text().strip() 
         spot_B = spot[:7] # 及時買入匯率
@@ -125,7 +127,7 @@ def fubon(browser):
         note = td_list[4].get_text().strip()
         note_B = note[:7] # 現金買入匯率
         note_S = note[-7:] # 現金賣出匯率
-        atable.append([currency, spot_B, spot_S, note_B, note_S])
+        atable.append([code, spot_B, spot_S, note_B, note_S])
     return atable
 
 # 玉山銀行
@@ -141,8 +143,8 @@ def esunbank(browser):
 
     for exr in exr_list:
         code = exr.find('div', {'class', "col-1 col-lg-2 title-item title-en"}).get_text().strip()
-        currency = exr.find('div', {'class', "col-auto px-3 col-lg-5 title-item"}).get_text().strip() + code
-        currency = normalize_currency_name(currency)
+        # currency = exr.find('div', {'class', "col-auto px-3 col-lg-5 title-item"}).get_text().strip() + code
+        # currency = normalize_currency_name(currency)
 
         # 抓出專門放 外匯值 的 list
         value_list = bsoup.find('tr', {'class', "px-3 py-2 p-lg-0 {} currency".format(code)}) # 每個名稱差別在 code 不同
@@ -151,7 +153,7 @@ def esunbank(browser):
         note_B = value_list.find('div', {'class', "CashBBoardRate"}).get_text().strip()
         note_S = value_list.find('div', {'class', "CashSBoardRate"}).get_text().strip()
         
-        atable.append([currency, spot_B, spot_S, note_B, note_S])
+        atable.append([code, spot_B, spot_S, note_B, note_S])
     return atable
 
 
@@ -170,14 +172,14 @@ def yuantabank(browser):
         category_list = value.find_all('td')
 
         currency = category_list[0].get_text().strip()
-        currency = normalize_currency_name(currency)
-        # code = currency[-4:-1]
+        # currency = normalize_currency_name(currency)
+        code = currency[-4:-1]
         spot_B = category_list[1].get_text().strip() # 及時買入匯率
         spot_S = category_list[2].get_text().strip() # 及時賣出匯率
         note_B = category_list[3].get_text().strip() # 現金買入匯率
         note_S = category_list[4].get_text().strip() # 現金賣出匯率
 
-        atable.append([currency, spot_B, spot_S, note_B, note_S])
+        atable.append([code, spot_B, spot_S, note_B, note_S])
     return atable
 
 # 永豐銀行
@@ -233,9 +235,10 @@ def format_table(alist): # 僅限動態匯率
     atable = []
     # 統一各家銀行的欄位順序
     for row in alist:
-        currency = normalize_currency_name(row[0])
-        fcode = re.search('[A-Z]+', currency).group() # 會從中抓出第一個連續的大寫英文字母組成的字串，做為 code
-        row = [row[0]] + row[1:3] + row[3:]
+        fcode = []
+        # currency = normalize_currency_name(row[0])
+        fcode.append(re.search('[A-Z]+', row[0]).group()) # 會從中抓出第一個連續的大寫英文字母組成的字串，做為 code
+        row = fcode + row
         atable.append(row)
     return atable
 
