@@ -1,11 +1,31 @@
 from flask import Flask, render_template, jsonify, request
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 import csv
 import os
 import re
 
 app = Flask(__name__)
+
+def get_forex_data(csv_file="rates.csv"):
+    data_by_currency = defaultdict(list)
+
+    try:
+        with open(csv_file, mode="r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                data_by_currency[row["幣別代碼"]].append({
+                    "日期": row["日期"],
+                    "銀行": row["銀行"],
+                    "現金買進": row["現金買入"],
+                    "現金賣出": row["現金賣出"],
+                    "即期買進": row["即期買入"],
+                    "即期賣出": row["即期賣出"]
+                })
+    except FileNotFoundError:
+        pass
+
+    return data_by_currency
 
 # forexr
 @app.route('/')
@@ -108,6 +128,7 @@ def get_forex_data(csv_file="rates.csv"):
         with open(csv_file, mode="r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
+                date = row["日期"]
                 bank = row["銀行"]
                 code = row["幣別代碼"]
                 cash_buy = row["現金買入"]
@@ -116,6 +137,7 @@ def get_forex_data(csv_file="rates.csv"):
                 spot_sell = row["即期賣出"]
 
                 data_by_currency[code].append({
+                    "日期": date,
                     "銀行": bank,
                     "現金買進": cash_buy,
                     "現金賣出": cash_sell,
@@ -131,8 +153,28 @@ def get_forex_data(csv_file="rates.csv"):
 def get_currency_rates():
     currency = request.args.get("currency")
     if not currency:
-        return jsonify({"rates": []})
+        return jsonify({"rates": [], "todayRates": []})
 
     forex_data = get_forex_data()
-    rows = forex_data.get(currency, [])
-    return jsonify({"rates": rows})
+
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    five_days_ago = datetime.now() - timedelta(days=5)
+
+    all_rows = forex_data.get(currency, [])
+
+    # 折線圖用：近五天
+    recent_rows = [
+        row for row in all_rows
+        if datetime.strptime(row["日期"], "%Y-%m-%d") >= five_days_ago
+    ]
+
+    # 表格用：只取今天的
+    today_rows = [
+        row for row in all_rows
+        if row["日期"] == today_str
+    ]
+
+    return jsonify({
+        "rates": recent_rows,
+        "todayRates": today_rows
+    })

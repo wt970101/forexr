@@ -31,7 +31,6 @@
                 <option value="MXN">墨西哥披索</option>
                 <option value="DKK">丹麥克朗</option>
                 <option value="TRY">土耳其里拉</option>
-
             </select>
         </div>
         <div class="col-lg-2">
@@ -44,11 +43,19 @@
 
     <!-- 顯示查詢結果 -->
     <div id="rateResult"></div>
+
+    <!-- 折線圖 -->
+    <canvas id="chartSpotBuy" width="800" height="400"></canvas>
 </section>
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+function getRandomColor() {
+    return '#' + Math.floor(Math.random()*16777215).toString(16);
+}
+
 $('#btnSearch').on('click', function() {
     var currency = $('#selCurrency').val();
     if (!currency) return;
@@ -58,22 +65,87 @@ $('#btnSearch').on('click', function() {
 
     $.ajax({
         type: 'GET',
-        url: '/get_currency_rates', // 後端新的 route
+        url: '/get_currency_rates',
         data: { currency: currency }
-    })
+    })  
     .done(function(data) {
+        // ---------- 顯示表格 ----------
         var items = [];
         items.push('<h4 class="text-primary">' + currency + '</h4>');
         items.push('<table class="table table-striped table-rates">');
         items.push('<thead class="table-dark"><tr><th>銀行</th><th>即期買進</th><th>即期賣出</th><th>現金買進</th><th>現金賣出</th></tr></thead>');
         items.push('<tbody>');
 
-        $.each(data.rates, function(_, row) {
-            items.push('<tr><td>' + row['銀行'] + '</td><td>' + row['即期買進'] + '</td><td>' + row['即期賣出'] + '</td><td>' + row['現金買進'] + '</td><td>' + row['現金賣出'] + '</td></tr>');
+        // 找出四個欄位的最有利值
+        var maxSpotBuy  = Math.max(...data.todayRates.map(r => parseFloat(r['即期買進']) || -Infinity));
+        var minSpotSell = Math.min(...data.todayRates.map(r => parseFloat(r['即期賣出']) || Infinity));
+        var maxCashBuy  = Math.max(...data.todayRates.map(r => parseFloat(r['現金買進']) || -Infinity));
+        var minCashSell = Math.min(...data.todayRates.map(r => parseFloat(r['現金賣出']) || Infinity));
+
+        data.todayRates.forEach(row => {
+            var spotBuyClass  = (parseFloat(row['即期買進']) === maxSpotBuy) ? 'text-danger fw-bold' : '';
+            var spotSellClass = (parseFloat(row['即期賣出']) === minSpotSell) ? 'text-danger fw-bold' : '';
+            var cashBuyClass  = (parseFloat(row['現金買進']) === maxCashBuy) ? 'text-danger fw-bold' : '';
+            var cashSellClass = (parseFloat(row['現金賣出']) === minCashSell) ? 'text-danger fw-bold' : '';
+
+            items.push(
+                '<tr>' +
+                '<td>' + row['銀行'] + '</td>' +
+                `<td class="${spotBuyClass}">${row['即期買進']}</td>` +
+                `<td class="${spotSellClass}">${row['即期賣出']}</td>` +
+                `<td class="${cashBuyClass}">${row['現金買進']}</td>` +
+                `<td class="${cashSellClass}">${row['現金賣出']}</td>` +
+                '</tr>'
+            );
         });
 
         items.push('</tbody></table>');
         $('#rateResult').html(items.join(''));
+
+        // ---------- 折線圖 ----------
+        var bankMap = {};
+        data.rates.forEach(row => {
+            var bank = row['銀行'];
+            var date = row['日期'];
+            var value = parseFloat(row['即期買進']);
+
+            // 只加入有效數值
+            if (isNaN(value) || row['即期買進'] === '-' || !row['即期買進']) return;
+
+            if (!bankMap[bank]) bankMap[bank] = { dates: [], spot_buy: [] };
+            bankMap[bank].dates.push(date);
+            bankMap[bank].spot_buy.push(value);
+        });
+
+        var datasets = Object.keys(bankMap).map(bank => ({
+            label: bank,
+            data: bankMap[bank].spot_buy,
+            fill: false,
+            borderColor: getRandomColor(),
+            tension: 0.1
+        }));
+
+        var ctx = document.getElementById('chartSpotBuy').getContext('2d');
+        if (window.myChart) window.myChart.destroy();
+        window.myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: bankMap[Object.keys(bankMap)[0]]?.dates || [],
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'top' } },
+                scales: { 
+                    x: { title: { display: true, text: '日期' } }, 
+                    y: { title: { display: true, text: '即期買進匯率' } } 
+                }
+            }
+        });
+
+        // ---------- 註解 ----------
+        $('.chart-note').remove(); // 先刪除舊的註解
+        $('#chartSpotBuy').after('<p class="text-center text-muted mt-2 small chart-note">近五日外匯匯率折線圖</p>');
     })
     .fail(function(jqXHR) {
         alert('查詢失敗: ' + jqXHR.status);
@@ -82,5 +154,6 @@ $('#btnSearch').on('click', function() {
         $('#btnSearch > span').addClass('d-none');
     });
 });
+
 </script>
 {% endblock %}
