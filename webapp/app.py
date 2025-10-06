@@ -1,3 +1,4 @@
+
 from flask import Flask, render_template, jsonify, request
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -178,3 +179,29 @@ def get_currency_rates():
         "rates": recent_rows,
         "todayRates": today_rows
     })
+
+
+from flask import Flask, render_template, request, jsonify
+from webapp.modules.forexr_calculate import calculate_exchange
+
+@app.route("/forexr_calculate")
+def forexr_calculate_page():
+    return render_template("forexr_calculate.html")
+
+@app.route("/calculate", methods=["POST"])
+def calculate():
+    data = request.get_json()
+    amount = data.get("amount")
+    currency = data.get("currency")
+    bank = data.get("bank")
+    direction = data.get("direction")
+
+    result = calculate_exchange(amount, currency, bank, direction)
+
+    if result is None:
+        return jsonify({"error": "計算失敗或資料不完整"}), 400
+    else:
+        return jsonify({"result": result})
+
+if __name__ == "__main__":
+    app.run(debug=True)

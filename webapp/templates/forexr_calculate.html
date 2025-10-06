@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% set page_title = '外匯試算' %}
+
+{% block content %}
+<section class="container mt-5">
+  <h2 class="text-center mb-4">{{ page_title }}</h2>
+
+  <div class="card p-4 shadow-sm border border-secondary" style="max-width: 600px; margin: auto; border-radius: 15px;">
+    <!-- 兌換金額 -->
+    <div class="mb-3">
+      <label class="form-label fw-bold">兌換金額</label>
+      <input type="number" id="amount" class="form-control" placeholder="請輸入金額">
+    </div>
+
+    <!-- 兌換外幣 -->
+    <div class="mb-3">
+      <label class="form-label fw-bold">兌換外幣</label>
+      <select id="currency" class="form-control">
+        <option value="">請選擇幣別</option>
+        <option value="USD">美金 (USD)</option>
+        <option value="JPY">日圓 (JPY)</option>
+        <option value="EUR">歐元 (EUR)</option>
+        <option value="GBP">英鎊 (GBP)</option>
+        <option value="CNY">人民幣 (CNY)</option>
+      </select>
+    </div>
+
+    <!-- 兌換銀行 -->
+    <div class="mb-3">
+      <label class="form-label fw-bold">兌換銀行</label>
+      <select id="bank" class="form-control">
+        <option value="">請選擇銀行</option>
+        <option value="台灣銀行">台灣銀行</option>
+        <option value="台北富邦">台北富邦</option>
+        <option value="國泰世華">國泰世華</option>
+        <option value="玉山銀行">玉山銀行</option>
+        <option value="中國信託">中國信託</option>
+        <option value="永豐銀行">永豐銀行</option>
+      </select>
+    </div>
+
+    <!-- 轉換方向 -->
+    <div class="mb-3">
+      <label class="form-label fw-bold">轉換方向</label>
+      <select id="direction" class="form-control">
+        <option value="toTWD">外幣 ➜ 台幣</option>
+        <option value="toForeign">台幣 ➜ 外幣</option>
+      </select>
+    </div>
+
+    <!-- 試算按鈕 -->
+    <div class="text-center mt-4">
+      <button id="btnCalculate" class="btn btn-dark px-4">試算</button>
+    </div>
+
+    <!-- 結果顯示 -->
+    <div class="mt-4 text-center">
+      <h5 class="fw-bold">得到金額：</h5>
+      <p id="result" class="fs-4 text-success">--</p>
+    </div>
+  </div>
+
+  <!-- 備註區 -->
+  <div class="text-muted small mt-4" style="max-width: 600px; margin: auto;">
+    <p>備註：</p>
+    <p>1、「原始幣別」為您欲兌換之貨幣幣別，「轉換幣別」為兌換後得到之貨幣幣別。</p>
+    <p>2、試算結果僅供參考，實際之換算金額仍以交易當時匯率為準。</p>
+  </div>
+</section>
+
+<script>
+document.getElementById("btnCalculate").addEventListener("click", async () => {
+  const amount = document.getElementById("amount").value;
+  const currency = document.getElementById("currency").value;
+  const bank = document.getElementById("bank").value;
+  const direction = document.getElementById("direction").value;
+  const resultDiv = document.getElementById("result");
+
+  if (!amount || !currency || !bank || !direction) {
+    resultDiv.innerText = "請完整填寫所有欄位";
+    resultDiv.classList.remove("text-success");
+    resultDiv.classList.add("text-danger");
+    return;
+  }
+
+  try {
+    const response = await fetch("/calculate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount, currency, bank, direction })
+    });
+
+    const data = await response.json();
+    if (data.result) {
+      resultDiv.innerText = data.result + " 元";
+      resultDiv.classList.add("text-success");
+      resultDiv.classList.remove("text-danger");
+    } else {
+      resultDiv.innerText = "計算失敗，請確認輸入資料。";
+      resultDiv.classList.remove("text-success");
+      resultDiv.classList.add("text-danger");
+    }
+  } catch (error) {
+    resultDiv.innerText = "伺服器錯誤";
+    resultDiv.classList.remove("text-success");
+    resultDiv.classList.add("text-danger");
+  }
+});
+</script>
+{% endblock %}
