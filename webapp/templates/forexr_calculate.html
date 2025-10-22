@@ -17,11 +17,30 @@
       <label class="form-label fw-bold">兌換外幣</label>
       <select id="currency" class="form-control">
         <option value="">請選擇幣別</option>
-        <option value="USD">美金 (USD)</option>
-        <option value="JPY">日圓 (JPY)</option>
-        <option value="EUR">歐元 (EUR)</option>
-        <option value="GBP">英鎊 (GBP)</option>
-        <option value="CNY">人民幣 (CNY)</option>
+        <option value="USD">美金</option>
+        <option value="CNY">人民幣</option>
+        <option value="JPY">日圓</option>
+        <option value="EUR">歐元</option>
+        <option value="HKD">港幣</option>
+        <option value="AUD">澳幣</option>
+        <option value="ZAR">南非幣</option>
+        <option value="CAD">加拿大幣</option>
+        <option value="GBP">英鎊</option>
+        <option value="SGD">新加坡幣</option>
+        <option value="CHF">瑞士法郎</option>
+        <option value="NZD">紐元</option>
+        <option value="SEK">瑞典克朗</option>
+        <option value="THB">泰銖</option>
+        <option value="PHP">菲律賓披索</option>
+        <option value="IDR">印尼盾</option>
+        <option value="KRW">南韓圓</option>
+        <option value="VND">越南盾</option>
+        <option value="MYR">馬來西亞幣</option>
+        <option value="MOP">澳門幣</option>
+        <option value="CNH">人民幣（離岸）</option>
+        <option value="MXN">墨西哥披索</option>
+        <option value="DKK">丹麥克朗</option>
+        <option value="TRY">土耳其里拉</option>
       </select>
     </div>
 
@@ -30,12 +49,13 @@
       <label class="form-label fw-bold">兌換銀行</label>
       <select id="bank" class="form-control">
         <option value="">請選擇銀行</option>
-        <option value="台灣銀行">台灣銀行</option>
-        <option value="台北富邦">台北富邦</option>
-        <option value="國泰世華">國泰世華</option>
-        <option value="玉山銀行">玉山銀行</option>
-        <option value="中國信託">中國信託</option>
-        <option value="永豐銀行">永豐銀行</option>
+              <option value="台灣銀行">臺灣銀行</option>
+              <option value="台北富邦">台北富邦</option>
+              <option value="國泰世華">國泰世華</option>
+              <option value="玉山銀行">玉山銀行</option>
+              <option value="元大銀行">元大銀行</option>
+              <option value="永豐銀行">永豐銀行</option>
+              <option value="台新銀行">台新銀行</option>
       </select>
     </div>
 
@@ -96,7 +116,7 @@ document.getElementById("btnCalculate").addEventListener("click", async () => {
       resultDiv.classList.add("text-success");
       resultDiv.classList.remove("text-danger");
     } else {
-      resultDiv.innerText = "計算失敗，請確認輸入資料。";
+      resultDiv.innerText = "此銀行沒有該外幣外匯項目";
       resultDiv.classList.remove("text-success");
       resultDiv.classList.add("text-danger");
     }
