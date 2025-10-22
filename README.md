@@ -44,4 +44,5 @@
 
 # 實際操作
 - [Youtube  影片操作畫面](https://youtu.be/mrNHB214xx8?si=ztmCT8qbnfWJJuja)
-- 網頁呈現畫面( Youtube  截圖)![螢幕擷取畫面 2025-10-08 035136](https://hackmd.io/_uploads/ryi8FG_6ee.png)
+- 網頁呈現畫面
+![外匯試算](https://github.com/wt970101/forexr/blob/main/webapp/photo/%E5%A4%96%E5%8C%AF%E8%A9%A6%E7%AE%97.png)
