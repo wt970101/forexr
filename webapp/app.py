@@ -1,7 +1,7 @@
 
 from flask import Flask, render_template, jsonify, request
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import csv
 import os
 import re
@@ -35,68 +35,49 @@ def forexr():
 
 @app.route('/forexr_list/<bank_id>')
 def forexr_list(bank_id):
-    import webapp.modules.chromed as chromed
-    from webapp.modules import forexr
     from selenium import webdriver
     from selenium.webdriver.chrome.service import Service
     from pathlib import Path
+    from webapp.modules import amaindb
 
     BASE_DIR = Path(__file__).resolve().parent
-    if chromed.system_name == "Windows":
-        driver_path = r"C:\MyApps\forexr\webapp\driver\chromedriver.exe"
-        service = Service(driver_path)
-
-    chrome = webdriver.Chrome(chromed.options, service, True)
-    atable = forexr.forexr_list(bank_id, chrome)
 
     try:
-        columns, records = forexr.fetch(atable)
-        today = datetime.now().strftime("%Y-%m-%d")
-        csv_file = "rates.csv"
-        fieldnames = ["日期", "銀行", "幣別代碼", "現金買入", "現金賣出", "即期買入", "即期賣出"]
+        print("得到資訊搜尋", bank_id)
+        today = date.today()
+        today_str = today.strftime("%Y-%m-%d")
+        mainDB = amaindb.MAINDB()
+        print("開始讀寫 firebase")
+        data = mainDB.forexr_data_read(bank_id, today_str)
+        print("讀取資料完畢")
+        bank_category = {
+            'bot': '台灣銀行',
+            'fubon': '台北富邦',
+            'cathaybk': '國泰世華',
+            'esunbank': '玉山銀行',
+            'yuantabank': '元大銀行',
+            'sinopac': '永豐銀行',
+            'taishinbank': '台新銀行',
+        }
+        
+        records = []
+        for currency, rates in data.items():
+            records.append([
+                currency,                 # 幣別
+                rates['spot_B'],          # 即期買進
+                rates['spot_S'],          # 即期賣出
+                rates['note_B'],          # 現金買進
+                rates['note_S']           # 現金賣出
+            ])
 
-        # 先讀 CSV
-        existing_data = []
-        if os.path.exists(csv_file):
-            with open(csv_file, mode="r", encoding="utf-8") as f:
-                reader = csv.DictReader(f)
-                existing_data = list(reader)
-
-        # 建立查找索引
-        index_map = {(row["日期"], row["銀行"], row["幣別代碼"]): row for row in existing_data}
-
-        # 更新或新增
-        for r in records:
-            bank_name = forexr.bank_category.get(bank_id, bank_id)
-            code = r[0]  # 幣別代碼
-            cash_buy, cash_sell, spot_buy, spot_sell = r[1:5]  # 對應欄位
-            key = (today, bank_name, code)
-            index_map[key] = {
-                "日期": today,
-                "銀行": bank_name,
-                "幣別代碼": code,
-                "現金買入": cash_buy,
-                "現金賣出": cash_sell,
-                "即期買入": spot_buy,
-                "即期賣出": spot_sell
-            }
-
-        # 寫回 CSV
-        with open(csv_file, mode="w", encoding="utf-8", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
-            writer.writeheader()
-            for row in index_map.values():
-                writer.writerow(row)
-        # =======================================
-
-        # 回傳前端
-        jsonData = [{
-            "name": forexr.bank_category.get(bank_id, bank_id),
+        jsondata = [{
+            "name": bank_category[bank_id],
             "rates": records
-        }]
 
+        }]
+        print("回傳前端")
         return {
-            'jsonData': jsonData,
+            'jsonData': jsondata,
             'dtnow': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
 
