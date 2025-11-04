@@ -1,7 +1,7 @@
 from collections import defaultdict
 import csv
 
-def get_forex_data(csv_file="rates.csv"):
+def get_forexr_data(csv_file="rates.csv"):
     data_by_currency = defaultdict(list)
     display_name_map = {}
 

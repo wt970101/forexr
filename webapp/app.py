@@ -1,6 +1,7 @@
 
 from flask import Flask, render_template, jsonify, request
 from collections import defaultdict
+from webapp.modules import amaindb
 from datetime import datetime, timedelta, date
 import csv
 import os
@@ -38,7 +39,6 @@ def forexr_list(bank_id):
     from selenium import webdriver
     from selenium.webdriver.chrome.service import Service
     from pathlib import Path
-    from webapp.modules import amaindb
 
     BASE_DIR = Path(__file__).resolve().parent
 
@@ -87,78 +87,66 @@ def forexr_list(bank_id):
     
 @app.route("/compare")
 def compare():
-    from webapp.modules.forexr_compare import get_forex_data
-    forex_data, display_name_map = get_forex_data()
-    
-    currencies = sorted([
-        (code, display_name_map.get(code, code))
-        for code in forex_data.keys()
-    ])
-
-    selected_currency = request.args.get("currency")
-    rows = forex_data.get(selected_currency, []) if selected_currency else []
-
-    return render_template("forexr_compare.html",
-                           currencies=currencies,
-                           selected_currency=selected_currency,
-                           rows=rows)
-
-def get_forex_data(csv_file="rates.csv"):
-    data_by_currency = defaultdict(list)
-
-    try:
-        with open(csv_file, mode="r", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                date = row["日期"]
-                bank = row["銀行"]
-                code = row["幣別代碼"]
-                cash_buy = row["現金買入"]
-                cash_sell = row["現金賣出"]
-                spot_buy = row["即期買入"]
-                spot_sell = row["即期賣出"]
-
-                data_by_currency[code].append({
-                    "日期": date,
-                    "銀行": bank,
-                    "現金買進": cash_buy,
-                    "現金賣出": cash_sell,
-                    "即期買進": spot_buy,
-                    "即期賣出": spot_sell
-                })
-    except FileNotFoundError:
-        pass
-
-    return data_by_currency
+    return render_template("forexr_compare.html")
 
 @app.route("/get_currency_rates")
 def get_currency_rates():
     currency = request.args.get("currency")
     if not currency:
         return jsonify({"rates": [], "todayRates": []})
-
-    forex_data = get_forex_data()
-
+    
+    mainDB = amaindb.MAINDB()
     today_str = datetime.now().strftime("%Y-%m-%d")
-    five_days_ago = datetime.now() - timedelta(days=5)
+    five_days_ago = datetime.now() - timedelta(days=7)
 
-    all_rows = forex_data.get(currency, [])
+    bank_category = {
+        'bot': '台灣銀行',
+        'fubon': '台北富邦',
+        'cathaybk': '國泰世華',
+        'esunbank': '玉山銀行',
+        'yuantabank': '元大銀行',
+        'sinopac': '永豐銀行',
+        'taishinbank': '台新銀行',
+    }
 
-    # 折線圖用：近五天
-    recent_rows = [
-        row for row in all_rows
-        if datetime.strptime(row["日期"], "%Y-%m-%d") >= five_days_ago
-    ]
+    all_data = []
+    ago_data = []
+    for bank_code, bank_name in bank_category.items():
+        data = mainDB.forexr_data_read(bank_code, today_str)
+        print(f"讀取 {bank_name} 資料完畢")
+        if data == None:
+            print("沒有數據資料")
+            continue
+        if data[currency] == None:
+            print(f"沒有 {currency} 資料")
+            continue
+        
+        row = data[currency]
+        data["day"] = today_str
+        row["bank_name"] = bank_name
+        all_data.append(row)
 
-    # 表格用：只取今天的
-    today_rows = [
-        row for row in all_rows
-        if row["日期"] == today_str
-    ]
+    for bank_code, bank_name in bank_category.items():
+        for i in range(7, -1, -1):
+            date = datetime.now() - timedelta(days=i)
+            date_str = date.strftime("%Y-%m-%d")
+            data = mainDB.forexr_data_read(bank_code, date_str)
+            print(f"讀取 {bank_name} 資料完畢")
+            if data == None:
+                print("沒有數據資料")
+                continue
+            if data[currency] == None:
+                print(f"沒有 {currency} 資料")
+                continue
+        
+            row = data[currency]
+            row["bank_name"] = bank_name
+            row["date"] = date_str
+            ago_data.append(row)
 
     return jsonify({
-        "rates": recent_rows,
-        "todayRates": today_rows
+        "rates": ago_data,      # 折線圖用（近幾天）
+        "todayRates": all_data  # 表格用（今天）
     })
 
 

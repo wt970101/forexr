@@ -70,6 +70,7 @@ $('#btnSearch').on('click', function() {
         data: { currency: currency }
     })  
     .done(function(data) {
+        console.log(data);
         // ---------- 顯示表格 ----------
         var items = [];
         items.push('<h4 class="text-primary">' + currency + '</h4>');
@@ -78,24 +79,24 @@ $('#btnSearch').on('click', function() {
         items.push('<tbody>');
 
         // 找出四個欄位的最有利值
-        var maxSpotBuy  = Math.max(...data.todayRates.map(r => parseFloat(r['即期買進']) || -Infinity));
-        var minSpotSell = Math.min(...data.todayRates.map(r => parseFloat(r['即期賣出']) || Infinity));
-        var maxCashBuy  = Math.max(...data.todayRates.map(r => parseFloat(r['現金買進']) || -Infinity));
-        var minCashSell = Math.min(...data.todayRates.map(r => parseFloat(r['現金賣出']) || Infinity));
+        var maxSpotBuy  = Math.max(...data.todayRates.map(r => parseFloat(r['note_B']) || -Infinity));
+        var minSpotSell = Math.min(...data.todayRates.map(r => parseFloat(r['note_S']) || Infinity));
+        var maxCashBuy  = Math.max(...data.todayRates.map(r => parseFloat(r['spot_B']) || -Infinity));
+        var minCashSell = Math.min(...data.todayRates.map(r => parseFloat(r['spot_S']) || Infinity));
 
         data.todayRates.forEach(row => {
-            var spotBuyClass  = (parseFloat(row['即期買進']) === maxSpotBuy) ? 'text-danger fw-bold' : '';
-            var spotSellClass = (parseFloat(row['即期賣出']) === minSpotSell) ? 'text-danger fw-bold' : '';
-            var cashBuyClass  = (parseFloat(row['現金買進']) === maxCashBuy) ? 'text-danger fw-bold' : '';
-            var cashSellClass = (parseFloat(row['現金賣出']) === minCashSell) ? 'text-danger fw-bold' : '';
+            var spotBuyClass  = (parseFloat(row['note_B']) === maxSpotBuy) ? 'text-danger fw-bold' : '';
+            var spotSellClass = (parseFloat(row['note_S']) === minSpotSell) ? 'text-danger fw-bold' : '';
+            var cashBuyClass  = (parseFloat(row['spot_B']) === maxCashBuy) ? 'text-danger fw-bold' : '';
+            var cashSellClass = (parseFloat(row['spot_S']) === minCashSell) ? 'text-danger fw-bold' : '';
 
             items.push(
                 '<tr>' +
-                '<td>' + row['銀行'] + '</td>' +
-                `<td class="${spotBuyClass}">${row['即期買進']}</td>` +
-                `<td class="${spotSellClass}">${row['即期賣出']}</td>` +
-                `<td class="${cashBuyClass}">${row['現金買進']}</td>` +
-                `<td class="${cashSellClass}">${row['現金賣出']}</td>` +
+                '<td>' + row['bank_name'] + '</td>' +
+                `<td class="${spotBuyClass}">${row['note_B']}</td>` +
+                `<td class="${spotSellClass}">${row['note_S']}</td>` +
+                `<td class="${cashBuyClass}">${row['spot_B']}</td>` +
+                `<td class="${cashSellClass}">${row['spot_S']}</td>` +
                 '</tr>'
             );
         });
@@ -106,12 +107,12 @@ $('#btnSearch').on('click', function() {
         // ---------- 折線圖 ----------
         var bankMap = {};
         data.rates.forEach(row => {
-            var bank = row['銀行'];
-            var date = row['日期'];
-            var value = parseFloat(row['即期買進']);
+            var bank = row['bank_name'];
+            var date = row['date'];
+            var value = parseFloat(row['note_B']);
 
             // 只加入有效數值
-            if (isNaN(value) || row['即期買進'] === '-' || !row['即期買進']) return;
+            if (isNaN(value) || row['note_B'] === '-' || !row['note_B']) return;
 
             if (!bankMap[bank]) bankMap[bank] = { dates: [], spot_buy: [] };
             bankMap[bank].dates.push(date);
@@ -146,7 +147,7 @@ $('#btnSearch').on('click', function() {
 
         // ---------- 註解 ----------
         $('.chart-note').remove(); // 先刪除舊的註解
-        $('#chartSpotBuy').after('<p class="text-center text-muted mt-2 small chart-note">近五日外匯匯率折線圖</p>');
+        $('#chartSpotBuy').after('<p class="text-center text-muted mt-2 small chart-note">近七日外匯匯率折線圖</p>');
     })
     .fail(function(jqXHR) {
         alert('查詢失敗: ' + jqXHR.status);

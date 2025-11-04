@@ -19,33 +19,6 @@ class MAINDB():
             pass
         self.ref = db.reference()
     
-    def weather_data_add(self, discord_id, num):
-        import bot.modules.weather
-        print("得到資訊並啟動爬蟲")
-        data, city, message = bot.modules.weather._get_city_weather(num)
-        achild = self.ref.child(f'discord_weather/{discord_id}')
-
-        achild.set(message)
-        adict = {}
-        for i, row in enumerate(data):
-            # data[i] <=> row
-            adict = {
-                'date': row[0],
-                'temp1': row[1],
-                'temp2': row[2],
-                'temp3': row[3],
-                'ultraviolet': row[4]
-                }         
-            data[i] = adict
-
-        achild.set([city, message, data])
-        print("上傳 firebase 完畢")
-
-    def weather_data_read(self, discord_id):
-        achild = self.ref.child(f'discord_weather/{discord_id}')
-        print(achild.get())
-        return achild.get()
-    
     def forexr_data_add(self):
         today = date.today()
         today_str = today.strftime("%Y-%m-%d")
@@ -57,7 +30,6 @@ class MAINDB():
         data = forexr.get_every_bank_data()
         bank_names = ['bot', 'fubon', 'cathaybk', 'esunbank', 'yuantabank', 'sinopac', 'taishinbank']
         for ri in range(7):
-            print(data[ri])
             for row in data[ri]:
                 achild = self.ref.child(f'forexr_rate/{bank_names[ri]}/{today_str}/{row[0]}')
                 data[ri] = {
@@ -71,7 +43,7 @@ class MAINDB():
 
     def forexr_data_read(self, bank_name, time):
         achild = self.ref.child(f'forexr_rate/{bank_name}/{time}')
-        print(achild.get())
+        # print(achild.get())
         return achild.get()
 
 if __name__ == '__main__':
